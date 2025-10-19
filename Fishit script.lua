@@ -1,7 +1,9 @@
--- UI
+-- Load Fluent UI
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+-- Create Window
 local Window = Fluent:CreateWindow({
     Title = "Banana Hub " .. Fluent.Version,
     SubTitle = "by Vxstigely",
@@ -12,18 +14,30 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
+-- Tabs
 local Tabs = {
     Main = Window:AddTab({ Title = "Enable AutoFarm", Icon = "bot" }),    
 }
+
 Tabs.Main:AddParagraph({
     Title = "Fish Section",
     Content = "Start Auto Fishing",
     Icon = "Bot"
 })
--- Main
-local FishingController = require(game:GetService("ReplicatedStorage").Controllers.FishingController)
 
-
+-- Require FishingController safely
+local FishingController
+do
+    local ok, result = pcall(function()
+        return require(game:GetService("ReplicatedStorage").Controllers.FishingController)
+    end)
+    if ok then
+        FishingController = result
+        print("FishingController loaded successfully")
+    else
+        warn("Failed to load FishingController:", result)
+    end
+end
 
 -- AutoFarm Toggle
 local autofarm = false
@@ -32,13 +46,25 @@ Toggle:OnChanged(function(value)
     autofarm = value
 end)
 
+-- Status Label
+local StatusLabel = Tabs.Main:AddParagraph({
+    Title = "Status",
+    Content = "Idle"
+})
+
+-- Fishing Loop
 task.spawn(function()
     while true do
-        if autofarm then
+        if autofarm and FishingController then
+            StatusLabel:SetDesc("Fishing…")
             local success, err = pcall(function()
+                -- Start fishing
                 FishingController:RequestChargeFishingRod(Vector2.new(0, 0), true)
+
+                -- Get GUID
                 local guid = FishingController.GetCurrentGUID and FishingController:GetCurrentGUID()
                 if guid then
+                    -- Fire FishingCompleted with GUID
                     game:GetService("ReplicatedStorage")
                         :WaitForChild("Packages")
                         :WaitForChild("_Index")
@@ -49,86 +75,19 @@ task.spawn(function()
                         :FireServer(guid)
                 end
             end)
+
             if not success then
                 warn("Fishing error:", err)
+                StatusLabel:SetDesc("Error — check console")
             end
-            task.wait(3)
+
+            task.wait(3) -- delay between casts
         else
+            StatusLabel:SetDesc("Idle")
             task.wait(0.5)
         end
     end
 end)
-
--- Sell Section
-Tabs.Main:AddParagraph({
-    Title = "Auto Sell",
-    Content = "Start Auto selling"
-})
-
-Tabs.Main:AddButton({
-    Title = "Instant Sell",
-    Description = "",
-    Callback = function()
-        game:GetService("ReplicatedStorage")
-            :WaitForChild("Packages")
-            :WaitForChild("_Index")
-            :WaitForChild("sleitnick_net@0.2.0")
-            :WaitForChild("net")
-            :WaitForChild("RF/SellAllItems")
-            :InvokeServer()
-    end 
-})
-
--- Auto Sell
-local AutoSellEnable = false 
-local AutoSellDelay = 2
-
-Tabs.Main:AddToggle("AutoSellToggle", {Title = "Enable Auto Sell", Default = false}):OnChanged(function(value)
-    AutoSellEnable = value
-end)
-
-Tabs.Main:AddSlider("Slider", {
-    Title = "Selling Delay",
-    Description = "Adjust Selling Delay Here",
-    Default = 2,
-    Min = 1,
-    Max = 60,
-    Rounding = 1,
-    Callback = function(Value)
-        AutoSellDelay = Value
-    end
-})
-
-task.spawn(function()
-    while true do
-        if AutoSellEnable then
-            game:GetService("ReplicatedStorage")
-                :WaitForChild("Packages")
-                :WaitForChild("_Index")
-                :WaitForChild("sleitnick_net@0.2.0")
-                :WaitForChild("net")
-                :WaitForChild("RF/SellAllItems")
-                :InvokeServer()
-            task.wait(AutoSellDelay)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
--- Event Section
-Tabs.Main:AddParagraph({
-    Title = "Event Section",
-    Content = ""
-})
-
-local MultiDropdown = Tabs.Main:AddDropdown("MultiDropdown", {
-   Title = "Dropdown",
-   Description = "You can select multiple values.",
-   Values = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen"},
-   Multi = true,
-   Default = {"seven", "twelve"},
-})
 
 -- Save Config
 SaveManager:LoadAutoloadConfig()
