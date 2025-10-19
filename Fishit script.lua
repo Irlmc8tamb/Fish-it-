@@ -2,7 +2,6 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-
 local Window = Fluent:CreateWindow({
     Title = "Banana Hub " .. Fluent.Version,
     SubTitle = "by Vxstigely",
@@ -13,18 +12,18 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Main
-local FishingController = require(game:GetService("ReplicatedStorage").Controllers.FishingController)
-
 local Tabs = {
     Main = Window:AddTab({ Title = "Enable AutoFarm", Icon = "bot" }),    
 }
-
 Tabs.Main:AddParagraph({
     Title = "Fish Section",
     Content = "Start Auto Fishing",
     Icon = "Bot"
 })
+-- Main
+local FishingController = require(game:GetService("ReplicatedStorage").Controllers.FishingController)
+
+
 
 -- AutoFarm Toggle
 local autofarm = false
@@ -45,12 +44,15 @@ task.spawn(function()
                         :WaitForChild("_Index")
                         :WaitForChild("sleitnick_net@0.2.0")
                         :WaitForChild("net")
-                        :WaitForChild("RE/FishingCompleted")
-                        :FireServer()
+                        :WaitForChild("RE")
+                        :WaitForChild("FishingCompleted")
+                        :FireServer(guid)
                 end
             end)
-            if not success then warn("Fishing error:", err) end
-            task.wait(3) -- safer delay between casts
+            if not success then
+                warn("Fishing error:", err)
+            end
+            task.wait(3)
         else
             task.wait(0.5)
         end
